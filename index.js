@@ -99,12 +99,10 @@ async function fetchData() {
         disable_web_page_preview: true,
       });
     }
+    await storeId([data.post_id]);
     console.log(getBanner(`591`) + getBanner(`delay`, 'yellow'), `30s`);
     await delay(30 * 1000);
   }
-  // store results
-  await storeId(result.map((data) => data.post_id));
-  console.log(getBanner(`591`) + getBanner(`store`, 'yellow'), `${result.length} data`);
 }
 async function getStoredId() {
   if (await fs.pathExists('./storedId.json')) {
