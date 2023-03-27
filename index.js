@@ -72,6 +72,7 @@ async function fetchData() {
   // filter results
   let storedIds = await getStoredId();
   result = result.filter((data) => !storedIds.includes(data.post_id));
+  result = result.filter((data) => ['1+1', '樓中樓'].some((str) => data.title.includes(str)));
   // send results
   console.log(getBanner(`591`) + getBanner(`result`, 'yellow'), `${result.length} data`);
   for (let data of result) {
