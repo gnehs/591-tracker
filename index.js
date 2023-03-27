@@ -99,8 +99,8 @@ async function fetchData() {
         disable_web_page_preview: true,
       });
     }
-    console.log(getBanner(`591`) + getBanner(`delay`, 'yellow'), 5000);
-    await delay(5000);
+    console.log(getBanner(`591`) + getBanner(`delay`, 'yellow'), `30s`);
+    await delay(30 * 1000);
   }
   // store results
   await storeId(result.map((data) => data.post_id));
