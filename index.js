@@ -76,7 +76,7 @@ async function fetchData() {
   // send results
   console.log(getBanner(`591`) + getBanner(`result`, 'yellow'), `${result.length} data`);
   for (let data of result) {
-    console.log(getBanner(`591`) + getBanner(`send`, 'yellow'), data.post_id);
+    console.log(getBanner(`Telegram`) + getBanner(`send`, 'yellow'), data.title);
 
     let msg = [
       `<a href="https://rent.591.com.tw/rent-detail-${data.post_id}.html">${data.title}</a>`,
@@ -86,6 +86,7 @@ async function fetchData() {
       `📍 ${data.location}`,
       `🚊 ${data.surrounding.desc} ${data.surrounding.distance}`,
       `💵 ${data.price}${data.price_unit}`,
+      data.rent_tag.map(({ name }) => `#${name}`).join(' '),
     ].join('\n');
     if (data.photo_list.length > 0) {
       await bot.sendMediaGroup(process.env.CHAT_ID, data.photo_list.slice(0, 4).map((url, i) => ({
@@ -101,7 +102,6 @@ async function fetchData() {
       });
     }
     await storeId([data.post_id]);
-    console.log(getBanner(`591`) + getBanner(`delay`, 'yellow'), `30s`);
     await delay(30 * 1000);
   }
 }
