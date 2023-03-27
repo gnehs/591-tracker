@@ -1,34 +1,31 @@
 import fetch from 'node-fetch';
 import { load as cheerio } from 'cheerio';
 import colors from 'colors';
-// import { Telegraf } from 'telegraf';
+import fs from 'fs-extra';
+import corn from 'node-cron';
+import { Telegram } from 'telegraf';
+const bot = new Telegram(process.env.BOT_TOKEN);
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// const bot = new Telegraf(process.env.BOT_TOKEN);
-
-async function get591Data() {
-  console.log(getBanner(`591`), 'getting cookies and csrf token...');
+function getBanner(banner, color = 'blue') {
+  const bgColor = "bg" + color.split('').map((char, index) => index === 0 ? char.toUpperCase() : char).join('');
+  return colors[bgColor](
+    colors[`${color}`](`[`) +
+    colors[`white`](`${banner}`) +
+    colors[`${color}`](`]`)
+  )
+}
+async function get591Data(searchParams) {
   const response = await fetch('https://rent.591.com.tw/?kind=0&region=1');
   const text = await response.text();
   const $ = cheerio(text);
   const csrfToken = $('meta[name="csrf-token"]').attr('content');
   const cookies = response.headers.raw()['set-cookie'].map((cookie) => cookie.split(';')[0]).join('; ');
-  console.log(getBanner(`591`) + getBanner(` cookies `, 'yellow'), `${response.headers.raw()['set-cookie'].length} cookies`);
-  console.log(getBanner(`591`) + getBanner(`csrfToken`, 'yellow'), csrfToken);
 
-  console.log(getBanner(`591`), 'getting data...');
   let url = new URL('https://rent.591.com.tw/home/search/rsList');
-  url.searchParams.append('is_format_data', '1');
-  url.searchParams.append('is_new_list', '1');
-  url.searchParams.append('type', '1');
-  url.searchParams.append('multiRoom', '2,3');
-  url.searchParams.append('region', '1');
-  url.searchParams.append('mrtline', '162');
-  url.searchParams.append('mrtcoods', '4231,4184,4200,4221,66266');
-  url.searchParams.append('searchtype', '4');
-  url.searchParams.append('other', 'lift');
-  url.searchParams.append('rentprice', ',30000');
-  url.searchParams.append('order', 'posttime');
-  url.searchParams.append('orderType', 'desc');
+  for (let [key, value] of Object.entries(searchParams)) {
+    url.searchParams.append(key, value);
+  }
   let result = await fetch(url.href, {
     "headers": {
       "accept": "application/json, text/javascript, */*; q=0.01",
@@ -49,15 +46,80 @@ async function get591Data() {
     "method": "GET",
   });
   result = await result.json();
-  console.log(getBanner(`591`) + getBanner(` result `, 'yellow'), result.data.data);
+  return result.data.data
 }
-function getBanner(banner, color = 'blue') {
-  const bgColor = "bg" + color.split('').map((char, index) => index === 0 ? char.toUpperCase() : char).join('');
-  return colors[bgColor](
-    colors[`${color}`](`[`) +
-    colors[`white`](`${banner}`) +
-    colors[`${color}`](`]`)
-  )
+async function fetchData() {
+  let searchParams = {
+    is_format_data: 1,
+    is_new_list: 1,
+    type: 1,
+    multiRoom: '2,3',
+    region: 1,
+    mrtline: 162,
+    // mrtcoods: '4231,4184,4200,4221,66266',
+    searchtype: 4,
+    other: 'lift',
+    rentprice: ',30000',
+    order: 'posttime',
+    orderType: 'desc',
+  }
+  // fetch results
+  let result = []
+  for (let mrtcoods of [4231, 4184, 4200, 4221, 66266]) {
+    console.log(getBanner(`591`) + getBanner(`fetch`, 'yellow'), mrtcoods);
+    result = [...result, ...await get591Data({ mrtcoods, ...searchParams })]
+  }
+  // filter results
+  let storedIds = await getStoredId();
+  result = result.filter((data) => !storedIds.includes(data.post_id));
+  // send results
+  console.log(getBanner(`591`) + getBanner(`result`, 'yellow'), `${result.length} data`);
+  for (let data of result) {
+    console.log(getBanner(`591`) + getBanner(`send`, 'yellow'), data.post_id);
+
+    let msg = [
+      `<a href="https://rent.591.com.tw/rent-detail-${data.post_id}.html">${data.title}</a>`,
+      `🏠 ${data.kind_name}`,
+      `🚪 ${data.room_str}`,
+      `🪜 ${data.floor_str}`,
+      `📍 ${data.location}`,
+      `🚊 ${data.surrounding.desc} ${data.surrounding.distance}`,
+      `💵 ${data.price}${data.price_unit}`,
+    ].join('\n');
+    if (data.photo_list.length > 0) {
+      await bot.sendMediaGroup(process.env.CHAT_ID, data.photo_list.slice(0, 4).map((url, i) => ({
+        type: 'photo',
+        media: url,
+        caption: i == 0 ? msg : null,
+        parse_mode: 'HTML',
+      })));
+    } else {
+      await bot.sendMessage(process.env.CHAT_ID, msg, {
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+      });
+    }
+    console.log(getBanner(`591`) + getBanner(`delay`, 'yellow'), 5000);
+    await delay(5000);
+  }
+  // store results
+  await storeId(result.map((data) => data.post_id));
+  console.log(getBanner(`591`) + getBanner(`store`, 'yellow'), `${result.length} data`);
+}
+async function getStoredId() {
+  if (await fs.pathExists('./storedId.json')) {
+    const storedId = await fs.readJSON('./storedId.json');
+    return storedId
+  }
+  return [];
+}
+async function storeId(ids) {
+  ids = [...ids, ...await getStoredId()]
+  ids = [...new Set(ids)];
+  await fs.writeJSON('./storedId.json', ids);
 }
 
-get591Data();
+fetchData()
+corn.schedule('0 */1 * * *', () => {
+  fetchData();
+});
