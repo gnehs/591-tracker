@@ -81,7 +81,7 @@ async function fetchData() {
     let msg = [
       `<a href="https://rent.591.com.tw/rent-detail-${data.post_id}.html">${data.title}</a>`,
       `🏠 ${data.kind_name}`,
-      `🚪 ${data.room_str}`,
+      `🚪 ${data.room_str} ${data.area}坪`,
       `🪜 ${data.floor_str}`,
       `📍 ${data.location}`,
       `🚊 ${data.surrounding.desc} ${data.surrounding.distance}`,
