@@ -71,8 +71,25 @@ async function fetchData() {
   }
   // filter results
   let storedIds = await getStoredId();
-  result = result.filter((data) => !storedIds.includes(data.post_id));
-  result = result.filter((data) => !['1+1', '樓中樓'].some((str) => data.title.includes(str)));
+  result = result
+    // filter by stored id
+    .filter((data) => !storedIds.includes(data.post_id))
+    // filter by keywords
+    .filter((data) => !['1+1', '樓中樓'].some((str) => data.title.includes(str)))
+    // sort by distance
+    .sort((a, b) => parseInt(a.surrounding.distance) - parseInt(b.surrounding.distance))
+    // fileter duplicated results
+    .filter((data, index, self) => {
+      let isDuplicated = false;
+      for (let i = 0; i < index; i++) {
+        if (self[i].title == data.title && i > index) {
+          isDuplicated = true;
+          break;
+        }
+      }
+      return !isDuplicated
+    })
+
   // send results
   console.log(getBanner(`591`) + getBanner(`result`, 'yellow'), `${result.length} data`);
   for (let data of result) {
