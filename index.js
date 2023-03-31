@@ -80,14 +80,11 @@ async function fetchData() {
     .sort((a, b) => parseInt(a.surrounding.distance) - parseInt(b.surrounding.distance))
     // fileter duplicated results
     .filter((data, index, self) => {
-      let isDuplicated = false;
-      for (let i = 0; i < index; i++) {
-        if (self[i].title == data.title && i > index) {
-          isDuplicated = true;
-          break;
-        }
+      let duplicatedItems = self.filter(x => x.post_id === data.post_id)
+      if (duplicatedItems.length > 0) {
+        return duplicatedItems[0].post_id === data.post_id
       }
-      return !isDuplicated
+      return true
     })
 
   // send results
