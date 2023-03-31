@@ -78,25 +78,18 @@ async function fetchData() {
     .filter((data) => !['1+1', '樓中樓'].some((str) => data.title.includes(str)))
     // sort by distance
     .sort((a, b) => parseInt(a.surrounding.distance) - parseInt(b.surrounding.distance))
-    // fileter duplicated results
-    .filter((data, index, self) => {
-      let duplicatedItems = self.filter(x => x.post_id === data.post_id)
-      if (duplicatedItems.length > 0) {
-        return duplicatedItems[0].post_id === data.post_id
-      }
-      return true
-    })
+  let ids = [...new Set(result.map((data) => data.post_id))]
 
   // send results
   console.log(getBanner(`591`) + getBanner(`result`, 'yellow'), `${result.length} data`);
-  for (let data of result) {
+  for (let id of ids) {
+    let data = result.find((data) => data.post_id === id);
     console.log(getBanner(`Telegram`) + getBanner(`send`, 'yellow'), data.title);
 
     let msg = [
       `<a href="https://rent.591.com.tw/rent-detail-${data.post_id}.html">${data.title}</a>`,
-      `🏠 ${data.kind_name}`,
-      `🚪 ${data.room_str} ${data.area}坪`,
-      `🪜 ${data.floor_str}`,
+      `🏠 ${data.kind_name} ${data.area}坪`,
+      `🚪 ${data.floor_str} ${data.room_str}`,
       `📍 ${data.location}`,
       `🚊 ${data.surrounding.desc} ${data.surrounding.distance}`,
       `💵 ${data.price}${data.price_unit}`,
