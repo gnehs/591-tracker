@@ -83,7 +83,7 @@ async function fetchData() {
   // send results
   console.log(getBanner(`591`) + getBanner(`result`, 'yellow'), `${result.length} data`);
   for (let id of ids) {
-    if (await getStoredId().includes(id)) continue;
+    if ((await getStoredId()).includes(id)) continue;
     let data = result.find((data) => data.post_id === id);
     console.log(getBanner(`Telegram`) + getBanner(`send`, 'yellow'), data.title);
 
