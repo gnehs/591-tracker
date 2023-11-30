@@ -115,21 +115,26 @@ async function fetchData() {
       `💵 ${data.price}${data.price_unit}`,
       data.rent_tag.map(({ name }) => `#${name}`).join(" "),
     ].join("\n");
-    if (data.photo_list.length > 0) {
-      await bot.sendMediaGroup(
-        process.env.CHAT_ID,
-        data.photo_list.slice(0, 4).map((url, i) => ({
-          type: "photo",
-          media: url,
-          caption: i == 0 ? msg : null,
+    try {
+      if (data.photo_list.length > 0) {
+        await bot.sendMediaGroup(
+          process.env.CHAT_ID,
+          data.photo_list.slice(0, 4).map((url, i) => ({
+            type: "photo",
+            media: url,
+            caption: i == 0 ? msg : null,
+            parse_mode: "HTML",
+          }))
+        );
+      } else {
+        await bot.sendMessage(process.env.CHAT_ID, msg, {
           parse_mode: "HTML",
-        }))
-      );
-    } else {
-      await bot.sendMessage(process.env.CHAT_ID, msg, {
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      });
+          disable_web_page_preview: true,
+        });
+      }
+    } catch (e) {
+      console.log("Send message error");
+      console.log(e);
     }
     await storeId([data.post_id]);
     await delay(30 * 1000);
